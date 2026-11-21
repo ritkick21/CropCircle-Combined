@@ -92,6 +92,7 @@ test('grower registers, gets sourced guidance, shares a case, receives a reply a
       .toBeGreaterThan(0);
     await page.getByRole('link', { name: 'Get crop help', exact: true }).click();
     await page.getByRole('link', { name: 'Create an account' }).click();
+    await expect(page.getByRole('heading', { name: 'Create a CropCircle account' })).toBeVisible();
     await page.getByLabel('Email', { exact: true }).fill(grower.email);
     await page.getByRole('button', { name: 'Send verification email' }).click();
     await page.getByLabel('Verification code').fill(await codeFor(request, grower.email));
@@ -134,6 +135,7 @@ test('grower registers, gets sourced guidance, shares a case, receives a reply a
     await page.getByRole('button', { name: 'Mark resolved' }).click();
     await expect(page.getByText('Case resolved.', { exact: true })).toBeVisible();
 
+    await researcher.reload();
     await researcher.getByRole('button', { name: 'Source library' }).click();
     await researcher.getByLabel('Search by crop or topic').fill(crop);
     await expect(researcher.getByText(resolution, { exact: true })).toBeVisible();
