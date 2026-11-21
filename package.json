@@ -1,0 +1,40 @@
+{
+  "name": "cropcircle",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@11.25.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "docker compose up --build",
+    "dev:apps": "pnpm build:packages && pnpm --parallel --filter @cropcircle/api --filter @cropcircle/web dev",
+    "build:packages": "pnpm --filter @cropcircle/shared-types build && pnpm --filter @cropcircle/api-client build",
+    "build": "pnpm build:packages && pnpm --filter @cropcircle/api build && pnpm --filter @cropcircle/web build",
+    "lint": "pnpm -r --if-present lint",
+    "typecheck": "pnpm build:packages && pnpm -r --if-present typecheck",
+    "test": "pnpm -r --if-present test",
+    "test:security": "pnpm --filter @cropcircle/api build && jest --runInBand --runTestsByPath infra/scripts/security.unit.test.cjs",
+    "test:contracts": "jest --runInBand --runTestsByPath infra/scripts/api.contract.test.cjs",
+    "test:browser": "playwright test",
+    "test:load": "node infra/scripts/load.mjs",
+    "test:integration": "pnpm --filter @cropcircle/api test:auth && pnpm --filter @cropcircle/api test:locations:integration && pnpm --filter @cropcircle/api test:stage5:integration && pnpm --filter @cropcircle/api test:realtime:integration && pnpm --filter @cropcircle/api test:stage7:integration",
+    "test:ml": "python -m pytest apps/ml-service/tests",
+    "smoke": "node infra/scripts/smoke.mjs && node infra/scripts/socket-smoke.mjs",
+    "format": "prettier --write \"**/*.{ts,tsx,js,mjs,cjs,json,css,md,yml,yaml}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,mjs,cjs,json,css,md,yml,yaml}\"",
+    "db:generate": "pnpm --filter @cropcircle/api db:generate",
+    "db:migrate": "pnpm --filter @cropcircle/api db:migrate",
+    "db:migrate:deploy": "pnpm --filter @cropcircle/api db:migrate:deploy",
+    "compose:up": "docker compose up --build -d",
+    "compose:down": "docker compose down",
+    "compose:logs": "docker compose logs -f"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.1",
+    "jest": "^30.5.2",
+    "prettier": "^3.6.2",
+    "prettier-plugin-tailwindcss": "^0.6.14",
+    "typescript": "^5.9.3"
+  }
+}

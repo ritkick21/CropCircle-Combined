@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=75", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cropcircle-ml-service"
+version = "0.1.0"
+description = "Private FastAPI service for CropCircle model serving"
+requires-python = ">=3.10"
+dependencies = [
+  "fastapi>=0.115,<1",
+  "uvicorn[standard]>=0.34,<1",
+  "pydantic-settings>=2.7,<3",
+  "psycopg[binary]>=3.2,<4",
+  "redis>=5.2,<7",
+  "pandas>=2.2,<3",
+  "numpy>=1.26,<3",
+  "scikit-learn>=1.7,<1.8",
+  "scipy>=1.13,<2",
+  "xgboost>=3.2,<3.3; platform_system != 'Linux'",
+  "xgboost-cpu>=3.2,<3.3; platform_system == 'Linux'",
+  "pillow>=11,<13",
+  "joblib>=1.4,<2",
+]
+
+[project.optional-dependencies]
+train = ["mlflow-skinny>=3.18,<3.19"]
+dev = [
+  "httpx>=0.28,<1",
+  "pytest>=8,<10",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

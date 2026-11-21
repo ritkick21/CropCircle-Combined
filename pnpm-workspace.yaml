@@ -1,0 +1,16 @@
+packages:
+  - 'apps/*'
+  - 'packages/*'
+engineStrict: true
+overrides:
+  'next>postcss': '^8.5.18'
+  '@prisma/config>effect': '^3.22.1'
+  '@prisma/config>deepmerge-ts': '^8.0.0'
+allowBuilds:
+  '@parcel/watcher': false
+  '@prisma/client': true
+  '@prisma/engines': true
+  '@scarf/scarf': false
+  esbuild: true
+  msgpackr-extract: false
+  prisma: true

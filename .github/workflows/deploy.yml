@@ -1,0 +1,74 @@
+name: Deploy CropCircle
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: AWS deployment environment
+        type: choice
+        options: [staging, production]
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cropcircle-release-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    uses: ./.github/workflows/ci.yml
+
+  release:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: ${{ inputs.environment }}
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      AWS_STACK_NAME: ${{ vars.AWS_STACK_NAME }}
+      SMTP_HOST: ${{ vars.SMTP_HOST }}
+      SMTP_PORT: ${{ vars.SMTP_PORT }}
+      MAIL_FROM: ${{ vars.MAIL_FROM }}
+      IMAGE_TAG: ${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - uses: aws-actions/amazon-ecr-login@v2
+      - name: Build and publish immutable images
+        env:
+          TARGET_ENV: ${{ inputs.environment }}
+          MAP_STYLE_URL: ${{ vars.MAP_STYLE_URL }}
+          GEOCODE_URL: ${{ vars.GEOCODE_URL }}
+          ROUTE_URL: ${{ vars.ROUTE_URL }}
+        run: |
+          set -euo pipefail
+          outputs="$(aws cloudformation describe-stacks --stack-name "$AWS_STACK_NAME" --query 'Stacks[0].Outputs' --output json)"
+          read_output() { jq -er --arg key "$1" '.[] | select(.OutputKey == $key) | .OutputValue' <<< "$outputs"; }
+          test "$(read_output Environment)" = "$TARGET_ENV"
+          build() {
+            local image="$(read_output "$1"):$IMAGE_TAG"
+            local service="$2"
+            shift 2
+            docker build -f "apps/$service/Dockerfile" -t "$image" "$@" .
+            docker push "$image"
+          }
+          build ApiRepository api
+          build MlRepository ml-service
+          build WebRepository web \
+            --build-arg NEXT_PUBLIC_API_URL=/api/v1 \
+            --build-arg "NEXT_PUBLIC_MAP_STYLE_URL=${MAP_STYLE_URL:-https://tiles.openfreemap.org/styles/liberty}" \
+            --build-arg "NEXT_PUBLIC_GEOCODE_URL=${GEOCODE_URL:-https://photon.komoot.io/api}" \
+            --build-arg "NEXT_PUBLIC_ROUTE_URL=${ROUTE_URL:-https://router.project-osrm.org/route/v1/driving}"
+      - name: Migrate, roll forward and verify HTTPS
+        run: node infra/aws/deploy.mjs

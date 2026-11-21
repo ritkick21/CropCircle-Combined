@@ -1,0 +1,98 @@
+@import 'tailwindcss';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+}
+
+:root {
+  --background: #f8f6ed;
+  --foreground: oklch(0.27 0.035 145);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.27 0.035 145);
+  --primary: oklch(0.43 0.12 147);
+  --primary-foreground: oklch(0.985 0.01 110);
+  --muted: oklch(0.95 0.02 120);
+  --muted-foreground: oklch(0.48 0.035 145);
+  --accent: oklch(0.92 0.035 120);
+  --accent-foreground: oklch(0.3 0.05 145);
+  --border: oklch(0.87 0.02 130);
+  --input: oklch(0.87 0.02 130);
+  --ring: oklch(0.43 0.12 147);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: system-ui, sans-serif;
+  }
+  :where(a, button, input, select, textarea):focus-visible {
+    outline: 2px solid #26734b;
+    outline-offset: 3px;
+  }
+}
+
+.site-frame { width: min(100% - 3rem, 82rem); margin-inline: auto; }
+.site-header { border-bottom: 1px solid #dadccf; background: #fdfbf5; }
+.site-header-inner { display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 4.5rem; }
+.site-brand { display: inline-flex; align-items: center; gap: .65rem; font-weight: 750; font-size: 1.2rem; letter-spacing: -.035em; }
+.site-logo { display: grid; place-items: center; width: 2.35rem; height: 2.35rem; border-radius: 50%; background: #174531; color: #f3eaaa; }
+.site-header nav { display: flex; flex-wrap: wrap; gap: .25rem; }
+.site-header nav a { padding: .65rem .75rem; border-radius: .5rem; font-size: .875rem; font-weight: 650; }
+.site-header nav a:hover, .site-header nav a[aria-current] { background: #e7ebd9; color: #174531; }
+.landing { padding-block: 1.75rem 4rem; }
+.harvest-hero {
+  display: flex;
+  align-items: center;
+  min-height: 31rem;
+  padding: clamp(2rem, 5vw, 5rem);
+  border-radius: 1.4rem;
+  color: #fffdf3;
+  background: linear-gradient(90deg, #102c20 0%, #102c20e8 31%, #102c2055 71%, #102c2020),
+    #193e2d url('/harvest.webp') center 55% / cover;
+}
+.harvest-copy { max-width: 39rem; }
+.harvest-eyebrow { color: #f4e9a9; font-size: .75rem; font-weight: 750; letter-spacing: .1em; text-transform: uppercase; }
+.harvest-hero h1, .workspace-section h2 { font-family: Georgia, serif; font-weight: 500; letter-spacing: -.05em; }
+.harvest-hero h1 { font-size: clamp(2.8rem, 6.35vw, 6rem); line-height: 1; margin-block: .85rem 1rem; }
+.harvest-copy > p:not(.harvest-eyebrow) { max-width: 25rem; color: #f5f3e7; line-height: 1.65; }
+.harvest-cta { display: inline-flex; align-items: center; gap: .8rem; margin-top: 1.5rem; padding: .8rem 1.05rem; border-radius: .55rem; background: #f2e8a4; color: #172c22; font-weight: 750; }
+.harvest-cta:hover { background: #fff1b6; }
+.harvest-cta:focus-visible { outline-color: #f2e8a4; }
+.workspace-section { margin-top: 2.3rem; }
+.workspace-section h2 { font-size: clamp(1.9rem, 3.25vw, 3rem); margin-bottom: 1rem; }
+.workspace-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .9rem; }
+.workspace-card { display: flex; flex-direction: column; align-items: flex-start; gap: .55rem; padding: 1.1rem; border: 1px solid #dadccf; border-radius: .9rem; background: #fffdf7; }
+.workspace-card:hover { background: #eef0e3; border-color: #9dab93; }
+.workspace-card h3 { font-weight: 750; line-height: 1.2; }
+.workspace-card p { color: #435949; font-size: .875rem; line-height: 1.5; }
+.workspace-icon { padding: .5rem; color: #1d5339; background: #e9eddb; border-radius: .45rem; }
+.workspace-arrow { color: #1d5339; margin-top: auto; }
+.workspace-sign-in { margin-block: clamp(1.5rem, 6vw, 4rem); border: 1px solid #dadccf; border-radius: 1.1rem; background: #fffdf7; box-shadow: 0 14px 36px #203d2410; }
+@media (max-width: 780px) {
+  .workspace-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 600px) {
+  .site-frame { width: calc(100% - 1.5rem); }
+  .site-header-inner { flex-direction: column; align-items: flex-start; justify-content: center; gap: .3rem; padding-block: .5rem; }
+  .site-header nav { gap: 0; margin-inline-start: -.45rem; }
+  .site-header nav a { font-size: .76rem; padding: .65rem .45rem; }
+  .harvest-hero { min-height: 25rem; background-image: linear-gradient(90deg, #102c20eb, #102c20a5), url('/harvest.webp'); }
+  .workspace-card { padding: .8rem; }
+}

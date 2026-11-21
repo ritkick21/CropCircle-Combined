@@ -1,0 +1,9 @@
+node_modules
+.next
+dist
+coverage
+.venv
+pnpm-lock.yaml
+*.svg
+docs/SRS.md
+docs/IMPLEMENTATION_PLAN.md

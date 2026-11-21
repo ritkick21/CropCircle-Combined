@@ -1,0 +1,96 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install workspace dependencies
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+      - name: Generate Prisma client
+        run: pnpm db:generate
+      - name: Validate, build, and test TypeScript
+        run: |
+          pnpm lint
+          pnpm typecheck
+          pnpm test
+          pnpm test:security
+          pnpm build
+          pnpm audit --prod --audit-level high
+      - name: Validate AWS configuration
+        run: |
+          pip install cfn-lint
+          cfn-lint infra/aws/foundation.yaml
+          node --check infra/aws/deploy.mjs
+      - name: Test FastAPI
+        run: |
+          python -m pip install -e 'apps/ml-service[dev,train]'
+          OMP_NUM_THREADS=2 python -m cropcircle_ml.train --data apps/ml-service/data --out apps/ml-service/models
+          ML_REQUIRE_MODELS=1 python -m pytest apps/ml-service/tests
+
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      DATABASE_URL: postgresql://cropcircle:cropcircle_dev@localhost:5432/cropcircle
+      REDIS_URL: redis://localhost:6379/0
+      REALTIME_TEST_DATABASE_URL: postgresql://cropcircle:cropcircle_dev@localhost:5432/cropcircle_realtime?connection_limit=8
+      REALTIME_TEST_REDIS_URL: redis://localhost:6379/1
+      S3_ENDPOINT: http://localhost:8333
+      S3_PUBLIC_ENDPOINT: http://localhost:8333
+      S3_BUCKET: cropcircle-demo
+      S3_ACCESS_KEY: test
+      S3_SECRET_KEY: test
+      S3_AUTO_CREATE_BUCKET: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build and start all services
+        run: |
+          ML_SERVICE_KEY="$(openssl rand -hex 32)" docker compose up --build -d --wait
+      - name: Prepare host-side fixtures and browser
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+          pnpm db:generate
+          pnpm build:packages
+          pnpm exec playwright install --with-deps chromium
+      - name: Verify cross-service readiness
+        run: |
+          node infra/scripts/smoke.mjs
+          node infra/scripts/socket-smoke.mjs
+      - name: Verify database, identities, marketplace, realtime and inference
+        run: |
+          pnpm --filter @cropcircle/api exec prisma migrate status
+          docker compose exec -T db createdb -U cropcircle cropcircle_realtime
+          DATABASE_URL="$REALTIME_TEST_DATABASE_URL" pnpm db:migrate:deploy
+          pnpm test:integration
+      - name: Verify contracts, browser and local load
+        run: |
+          pnpm test:contracts
+          pnpm test:browser
+          pnpm test:load
+      - name: Print container logs on failure
+        if: failure()
+        run: docker compose logs --no-color --tail=150
+      - name: Stop services
+        if: always()
+        run: docker compose down

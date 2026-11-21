@@ -1,0 +1,191 @@
+name: cropcircle
+
+services:
+  db:
+    image: postgis/postgis:17-3.6-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-cropcircle}
+      POSTGRES_USER: ${POSTGRES_USER:-cropcircle}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cropcircle_dev}
+    ports:
+      - '127.0.0.1:${POSTGRES_PORT:-5432}:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  redis:
+    image: redis:7.4-alpine
+    command: ['redis-server', '--appendonly', 'yes']
+    ports:
+      - '127.0.0.1:${REDIS_PORT:-6379}:6379'
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  object-storage:
+    image: chrislusf/seaweedfs:4.52
+    environment:
+      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY:-test}
+      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_KEY:-test}
+      S3_BUCKET: cropcircle-demo
+      WEED_ADMIN_PASSWORD: ${S3_ADMIN_PASSWORD:-cropcircle_demo_admin}
+    ports:
+      - '127.0.0.1:${S3_PORT:-8333}:8333'
+    volumes:
+      - s3_data:/data
+
+  mail:
+    image: axllent/mailpit:v1.34.0
+    ports:
+      - '127.0.0.1:${MAIL_PORT:-8025}:8025'
+      - '127.0.0.1:${AUTH_SMTP_PORT:-1025}:1025'
+
+  ml-service:
+    build:
+      context: .
+      dockerfile: apps/ml-service/Dockerfile
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-cropcircle}:${POSTGRES_PASSWORD:-cropcircle_dev}@db:5432/${POSTGRES_DB:-cropcircle}
+      REDIS_URL: redis://redis:6379/0
+      ML_SERVICE_HOST: 0.0.0.0
+      ML_SERVICE_PORT: 8000
+      ML_SERVICE_KEY: ${ML_SERVICE_KEY:-}
+    ports:
+      - '127.0.0.1:${ML_PORT:-8000}:8000'
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'python',
+          '-c',
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=3)",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    restart: unless-stopped
+
+  migrate:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    command: ['node', 'node_modules/prisma/build/index.js', 'migrate', 'deploy']
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-cropcircle}:${POSTGRES_PASSWORD:-cropcircle_dev}@db:5432/${POSTGRES_DB:-cropcircle}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: 'no'
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    environment:
+      NODE_ENV: ${API_NODE_ENV:-development}
+      PORT: 3001
+      DATABASE_URL: postgresql://${POSTGRES_USER:-cropcircle}:${POSTGRES_PASSWORD:-cropcircle_dev}@db:5432/${POSTGRES_DB:-cropcircle}
+      REDIS_URL: redis://redis:6379/0
+      ML_SERVICE_URL: http://ml-service:8000
+      ML_SERVICE_KEY: ${ML_SERVICE_KEY:-}
+      REALTIME_PREFIX: ${REALTIME_PREFIX:-cropcircle}
+      WEB_ORIGIN: ${WEB_ORIGIN:-http://localhost:${WEB_PORT:-3000}}
+      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:-}
+      AUTH_SMTP_HOST: ${AUTH_SMTP_HOST_CONTAINER:-mail}
+      AUTH_SMTP_PORT: ${AUTH_SMTP_PORT_CONTAINER:-1025}
+      AUTH_MAIL_FROM: ${AUTH_MAIL_FROM:-no-reply@cropcircle.test}
+      AUTH_SMTP_USER: ${AUTH_SMTP_USER:-}
+      AUTH_SMTP_PASSWORD: ${AUTH_SMTP_PASSWORD:-}
+      S3_ENDPOINT: http://object-storage:8333
+      S3_PUBLIC_ENDPOINT: http://localhost:${S3_PORT:-8333}
+      S3_REGION: us-east-1
+      S3_BUCKET: cropcircle-demo
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-test}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-test}
+      S3_AUTO_CREATE_BUCKET: 'true'
+    ports:
+      - '127.0.0.1:${API_PORT:-3001}:3001'
+    depends_on:
+      mail:
+        condition: service_started
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      object-storage:
+        condition: service_started
+      ml-service:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3001/api/v1/health/ready').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:${API_PORT:-3001}/api/v1
+        NEXT_PUBLIC_MAP_STYLE_URL: ${NEXT_PUBLIC_MAP_STYLE_URL:-https://tiles.openfreemap.org/styles/liberty}
+        NEXT_PUBLIC_GEOCODE_URL: ${NEXT_PUBLIC_GEOCODE_URL:-https://photon.komoot.io/api}
+        NEXT_PUBLIC_ROUTE_URL: ${NEXT_PUBLIC_ROUTE_URL:-https://router.project-osrm.org/route/v1/driving}
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+      API_INTERNAL_URL: http://api:3001/api/v1
+      NEXT_PUBLIC_API_URL: http://localhost:${API_PORT:-3001}/api/v1
+      NEXT_PUBLIC_MAP_STYLE_URL: ${NEXT_PUBLIC_MAP_STYLE_URL:-https://tiles.openfreemap.org/styles/liberty}
+      NEXT_PUBLIC_GEOCODE_URL: ${NEXT_PUBLIC_GEOCODE_URL:-https://photon.komoot.io/api}
+      NEXT_PUBLIC_ROUTE_URL: ${NEXT_PUBLIC_ROUTE_URL:-https://router.project-osrm.org/route/v1/driving}
+    ports:
+      - '127.0.0.1:${WEB_PORT:-3000}:3000'
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3000/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  s3_data:
