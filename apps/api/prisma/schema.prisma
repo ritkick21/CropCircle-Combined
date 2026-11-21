@@ -34,6 +34,11 @@ enum AuthTokenPurpose {
 }
 
 model User {
+  farmCases FarmCase[] @relation("FarmCaseGrower")
+  farmReviews FarmCase[] @relation("FarmCaseResearcher")
+  farmReplies FarmReply[]
+  farmTrials FarmTrial[]
+  farmResources FarmResource[]
   realtimeNotifications RealtimeNotification[]
   farmerConversationsA FarmerConversation[] @relation("FarmerParticipantA")
   farmerConversationsB FarmerConversation[] @relation("FarmerParticipantB")
@@ -515,4 +520,81 @@ model GroupObservation {
   author User @relation(fields: [authorId], references: [id])
   @@index([groupId, observedAt])
   @@map("group_observations")
+}
+
+
+enum FarmReplyKind {
+  ADVICE
+  TRIAL_OFFER
+  SAMPLE_REQUEST
+}
+
+enum FarmResourceKind {
+  GUIDE
+  FIELD_REPORT
+  RESEARCH
+}
+
+model FarmCase {
+  id           String      @id @default(uuid()) @db.Uuid
+  crop         String      @db.VarChar(80)
+  region       String?     @db.VarChar(100)
+  description  String      @db.VarChar(2000)
+  openToTrials Boolean     @default(false) @map("open_to_trials")
+  growerId     String      @map("grower_id") @db.Uuid
+  researcherId String?     @map("researcher_id") @db.Uuid
+  createdAt    DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  activityAt   DateTime    @default(now()) @map("activity_at") @db.Timestamptz(6)
+  sharedAt     DateTime?   @map("shared_at") @db.Timestamptz(6)
+  resolvedAt   DateTime?   @map("resolved_at") @db.Timestamptz(6)
+  resolution   String?     @db.VarChar(1200)
+  publishFix   Boolean     @default(false) @map("publish_fix")
+  grower       User        @relation("FarmCaseGrower", fields: [growerId], references: [id], onDelete: Restrict)
+  researcher   User?       @relation("FarmCaseResearcher", fields: [researcherId], references: [id], onDelete: Restrict)
+  replies      FarmReply[]
+
+  @@index([growerId, activityAt])
+  @@index([researcherId, sharedAt, activityAt])
+  @@map("farm_cases")
+}
+
+model FarmReply {
+  id        String        @id @default(uuid()) @db.Uuid
+  kind      FarmReplyKind
+  body      String        @db.VarChar(1500)
+  caseId    String        @map("case_id") @db.Uuid
+  authorId  String        @map("author_id") @db.Uuid
+  createdAt DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  case      FarmCase      @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  author    User          @relation(fields: [authorId], references: [id], onDelete: Restrict)
+
+  @@index([caseId, createdAt])
+  @@map("farm_replies")
+}
+
+model FarmTrial {
+  id          String   @id @default(uuid()) @db.Uuid
+  title       String   @db.VarChar(120)
+  crop        String   @db.VarChar(80)
+  description String   @db.VarChar(1200)
+  authorId    String   @map("author_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([authorId, createdAt])
+  @@map("farm_trials")
+}
+
+model FarmResource {
+  id        String           @id @default(uuid()) @db.Uuid
+  title     String           @db.VarChar(150)
+  crop      String           @db.VarChar(80)
+  summary   String           @db.VarChar(500)
+  kind      FarmResourceKind
+  url       String           @unique @db.VarChar(600)
+  authorId  String           @map("author_id") @db.Uuid
+  createdAt DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  author    User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@map("farm_resources")
 }

@@ -1,11 +1,37 @@
 import Link from 'next/link';
-import { ArrowRight, ChartNoAxesCombined, MapPin, Store, UsersRound } from 'lucide-react';
+import { ArrowRight, ChartNoAxesCombined, MapPin, Sprout, Store, UsersRound } from 'lucide-react';
 
 const workspaces = [
-  { href: '/marketplace', title: 'Surplus marketplace', description: 'Offer fresh produce for sale or donation and coordinate pickup.', icon: Store },
-  { href: '/map', title: 'Resource map', description: 'Find nearby food banks, farm resources and distribution sites.', icon: MapPin },
-  { href: '/collaboration', title: 'Farmer collaboration', description: 'Compare field observations and share what works with other growers.', icon: UsersRound },
-  { href: '/sustainability', title: 'Sustainability', description: 'Track redistributed food and plan for the next harvest.', icon: ChartNoAxesCombined },
+  {
+    href: '/farmline',
+    title: 'FarmLine crop help',
+    description: 'Get sourced field guidance and share crop problems with researchers.',
+    icon: Sprout,
+  },
+  {
+    href: '/marketplace',
+    title: 'Surplus marketplace',
+    description: 'Offer fresh produce for sale or donation and coordinate pickup.',
+    icon: Store,
+  },
+  {
+    href: '/map',
+    title: 'Resource map',
+    description: 'Find nearby food banks, farm resources and distribution sites.',
+    icon: MapPin,
+  },
+  {
+    href: '/collaboration',
+    title: 'Farmer collaboration',
+    description: 'Compare field observations and share what works with other growers.',
+    icon: UsersRound,
+  },
+  {
+    href: '/sustainability',
+    title: 'Sustainability',
+    description: 'Track redistributed food and plan for the next harvest.',
+    icon: ChartNoAxesCombined,
+  },
 ];
 
 export default function Home() {
@@ -14,9 +40,23 @@ export default function Home() {
       <section className="harvest-hero" aria-labelledby="harvest-heading">
         <div className="harvest-copy">
           <p className="harvest-eyebrow">For growers and food partners</p>
-          <h1 id="harvest-heading">A local market<br />for what you grow.</h1>
-          <p>Find a home for surplus produce, connect with local food organizations and see where your harvest goes.</p>
-          <Link className="harvest-cta" href="/marketplace">Explore the marketplace <ArrowRight aria-hidden className="size-4" /></Link>
+          <h1 id="harvest-heading">
+            A local market
+            <br />
+            for what you grow.
+          </h1>
+          <p>
+            Find a home for surplus produce, connect with local food organizations, and get help
+            when something goes wrong in the field.
+          </p>
+          <div className="harvest-actions">
+            <Link className="harvest-cta" href="/farmline">
+              Get crop help <ArrowRight aria-hidden className="size-4" />
+            </Link>
+            <Link className="harvest-cta harvest-cta-secondary" href="/marketplace">
+              Explore the marketplace <ArrowRight aria-hidden className="size-4" />
+            </Link>
+          </div>
         </div>
       </section>
       <section className="workspace-section" aria-labelledby="workspace-heading">
@@ -24,7 +64,9 @@ export default function Home() {
         <div className="workspace-grid">
           {workspaces.map(({ href, title, description, icon: Icon }) => (
             <Link className="workspace-card" key={href} href={href}>
-              <span className="workspace-icon"><Icon aria-hidden className="size-5" /></span>
+              <span className="workspace-icon">
+                <Icon aria-hidden className="size-5" />
+              </span>
               <h3>{title}</h3>
               <p>{description}</p>
               <ArrowRight aria-hidden className="workspace-arrow size-4" />

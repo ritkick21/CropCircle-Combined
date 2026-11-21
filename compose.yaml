@@ -1,4 +1,4 @@
-name: cropcircle
+name: cropcircle-combined
 
 services:
   db:

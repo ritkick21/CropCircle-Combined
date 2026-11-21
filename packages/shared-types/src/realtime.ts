@@ -26,6 +26,8 @@ type EventPayloads = {
   FARMER_MESSAGE_CREATED: { conversationId: string; messageId: string };
   GROUP_MESSAGE_CREATED: { groupId: string; messageId: string };
   GROUP_ACTIVITY_UPDATED: { groupId: string };
+  FARM_CASE_SHARED: { caseId: string };
+  FARM_CASE_REPLIED: { caseId: string };
   NOTIFICATION_CREATED: { notificationId: string };
   NOTIFICATION_READ: { notificationId: string };
 };

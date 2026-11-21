@@ -68,3 +68,5 @@ export interface ResourceDetail extends ResourceMarker {
   distanceMeters: number | null;
 }
 export * from './realtime.js';
+
+export * from './farmline.js';

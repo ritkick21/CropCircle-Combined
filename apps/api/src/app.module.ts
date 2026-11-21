@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
 import { validateEnvironment } from './config/environment';
+import { FarmlineModule } from './farmline/farmline.module';
 import { HealthController } from './health/health.controller';
 import { HealthService } from './health/health.service';
 import { InfrastructureModule } from './infrastructure.module';
@@ -23,6 +24,7 @@ import { Stage5Module } from './stage5/stage5.module';
     OrganizationsModule,
     LocationsModule,
     Stage5Module,
+    FarmlineModule,
     IntelligenceModule,
     RealtimeModule,
   ],

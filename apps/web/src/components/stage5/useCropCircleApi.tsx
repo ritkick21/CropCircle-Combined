@@ -1,4 +1,6 @@
 'use client';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { apiRoot, loadAccessToken, refreshAccessToken, rememberAccessToken } from '../realtime/access-session';
 import { useRealtime } from '../realtime/useRealtime';
@@ -64,6 +66,7 @@ export function useCropCircleApi() {
 }
 
 export function SignIn({ login, error }: { login: (email: string, password: string) => Promise<void>; error: string }) {
+  const pathname = usePathname();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   return (
@@ -80,6 +83,7 @@ export function SignIn({ login, error }: { login: (email: string, password: stri
         </label>
         <button className="w-full rounded-lg bg-[#174531] px-4 py-3 font-semibold text-white hover:bg-[#23573e]">Sign in</button>
       </form>
+      <p className="text-sm">New to CropCircle? <Link className="font-semibold underline" href={{ pathname: '/account', query: { returnTo: pathname } }}>Create an account</Link></p>
       {error && <p role="alert" className="text-red-700">{error}</p>}
     </main>
   );

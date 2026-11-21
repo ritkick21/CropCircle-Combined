@@ -1,6 +1,7 @@
 'use client';
 
 import 'maplibre-gl/dist/maplibre-gl.css';
+import Link from 'next/link';
 import * as maplibregl from 'maplibre-gl';
 import type { GeoJSONSource, Map } from 'maplibre-gl';
 import type { ResourceCategory as Category, ResourceMarker as Marker, ResourceDetail as Detail } from '@cropcircle/shared-types';
@@ -862,6 +863,7 @@ export function InteractiveMap() {
               />
             </label>
             <button className="rounded bg-green-800 px-4 py-2 text-white">Sign in</button>
+            <p className="text-sm">New to CropCircle? <Link className="font-semibold underline" href="/account?returnTo=/map">Create an account</Link></p>
           </form>
         )}
         {error && (
